@@ -1,0 +1,3 @@
+# Only BLF/public is meant to be web-visible. If this project sits inside an
+# Apache document root, deny everything else (including .env and vendor/).
+Require all denied

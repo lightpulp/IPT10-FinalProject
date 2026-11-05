@@ -1,0 +1,5 @@
+/vendor/
+.env
+BLF/public/uploads/*
+!BLF/public/uploads/.gitkeep
+!BLF/public/uploads/.htaccess

@@ -1,0 +1,52 @@
+/* Betis Legacy Furniture: colour, type and corner overrides on top of Bootstrap 5.3. */
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&display=swap');
+
+:root {
+    --blf-walnut: #4a2f1d;
+    --blf-wood: #7a4a2a;
+    --blf-cream: #f7f1e6;
+
+    --bs-body-bg: var(--blf-cream);
+    --bs-tertiary-bg: #efe6d6;
+    --bs-tertiary-bg-rgb: 239, 230, 214;
+    --bs-primary: var(--blf-wood);
+    --bs-primary-rgb: 122, 74, 42;
+    --bs-link-color: var(--blf-wood);
+    --bs-link-color-rgb: 122, 74, 42;
+    --bs-link-hover-color: var(--blf-walnut);
+    --bs-link-hover-color-rgb: 74, 47, 29;
+    --bs-border-radius: 0;
+    --bs-border-radius-sm: 0;
+    --bs-border-radius-lg: 0;
+    --bs-border-radius-pill: 0;
+}
+
+h1, h2, h3, h4, .display-5, .display-6, .navbar-brand {
+    font-family: 'Lora', Georgia, serif;
+}
+
+.navbar.bg-dark { background-color: var(--blf-walnut) !important; }
+.lp-hero { background: linear-gradient(135deg, #efe3cf, var(--blf-cream)); }
+
+.btn-primary {
+    --bs-btn-bg: var(--blf-wood);
+    --bs-btn-border-color: var(--blf-wood);
+    --bs-btn-hover-bg: var(--blf-walnut);
+    --bs-btn-hover-border-color: var(--blf-walnut);
+    --bs-btn-active-bg: var(--blf-walnut);
+    --bs-btn-active-border-color: var(--blf-walnut);
+    --bs-btn-disabled-bg: var(--blf-wood);
+    --bs-btn-disabled-border-color: var(--blf-wood);
+}
+.btn-outline-primary {
+    --bs-btn-color: var(--blf-wood);
+    --bs-btn-border-color: var(--blf-wood);
+    --bs-btn-hover-bg: var(--blf-wood);
+    --bs-btn-hover-border-color: var(--blf-wood);
+    --bs-btn-active-bg: var(--blf-walnut);
+    --bs-btn-active-border-color: var(--blf-walnut);
+}
+.nav-pills { --bs-nav-pills-link-active-bg: var(--blf-wood); --bs-nav-link-color: var(--blf-wood); --bs-nav-link-hover-color: var(--blf-walnut); }
+.pagination { --bs-pagination-color: var(--blf-wood); --bs-pagination-active-bg: var(--blf-wood); --bs-pagination-active-border-color: var(--blf-wood); }
+.list-group { --bs-list-group-active-bg: var(--blf-wood); --bs-list-group-active-border-color: var(--blf-wood); }
+.form-check-input:checked { background-color: var(--blf-wood); border-color: var(--blf-wood); }
