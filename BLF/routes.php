@@ -13,6 +13,9 @@ use App\Controllers\HomeController;
 use App\Controllers\InquiryController;
 use App\Controllers\PageController;
 use App\Controllers\TrackController;
+use App\Middleware\Authenticate;
+use App\Middleware\RequireAdmin;
+use Lightpull\Router;
 
 /** @var Lightpull\App $app */
 $router = $app->router;
@@ -36,26 +39,30 @@ $router->get('/admin/login', [AuthController::class, 'showLogin']);
 $router->post('/admin/login', [AuthController::class, 'login']);
 $router->post('/admin/logout', [AuthController::class, 'logout']);
 
-// Admin area (every controller below extends AdminController, which requires a login)
-$router->get('/admin', [DashboardController::class, 'index']);
+// Admin area: every route in this group passes the Authenticate middleware first.
+$router->group([Authenticate::class], function (Router $router): void {
+    $router->get('/admin', [DashboardController::class, 'index']);
 
-$router->get('/admin/products', [AdminProducts::class, 'index']);
-$router->get('/admin/products/create', [AdminProducts::class, 'create']);
-$router->post('/admin/products/create', [AdminProducts::class, 'store']);
-$router->get('/admin/products/{id}/edit', [AdminProducts::class, 'edit']);
-$router->post('/admin/products/{id}/edit', [AdminProducts::class, 'update']);
-$router->post('/admin/products/{id}/delete', [AdminProducts::class, 'delete']);
+    $router->get('/admin/products', [AdminProducts::class, 'index']);
+    $router->get('/admin/products/create', [AdminProducts::class, 'create']);
+    $router->post('/admin/products/create', [AdminProducts::class, 'store']);
+    $router->get('/admin/products/{id}/edit', [AdminProducts::class, 'edit']);
+    $router->post('/admin/products/{id}/edit', [AdminProducts::class, 'update']);
+    $router->post('/admin/products/{id}/delete', [AdminProducts::class, 'delete']);
 
-$router->get('/admin/categories', [AdminCategories::class, 'index']);
-$router->post('/admin/categories', [AdminCategories::class, 'store']);
-$router->post('/admin/categories/{id}/delete', [AdminCategories::class, 'delete']);
+    $router->get('/admin/categories', [AdminCategories::class, 'index']);
+    $router->post('/admin/categories', [AdminCategories::class, 'store']);
+    $router->post('/admin/categories/{id}/delete', [AdminCategories::class, 'delete']);
 
-$router->get('/admin/inquiries', [AdminInquiries::class, 'index']);
-$router->get('/admin/inquiries/{id}', [AdminInquiries::class, 'show']);
-$router->post('/admin/inquiries/{id}', [AdminInquiries::class, 'update']);
+    $router->get('/admin/inquiries', [AdminInquiries::class, 'index']);
+    $router->get('/admin/inquiries/{id}', [AdminInquiries::class, 'show']);
+    $router->post('/admin/inquiries/{id}', [AdminInquiries::class, 'update']);
 
-// Admin only (UserController checks the role itself)
-$router->get('/admin/users', [AdminUsers::class, 'index']);
-$router->get('/admin/users/create', [AdminUsers::class, 'create']);
-$router->post('/admin/users/create', [AdminUsers::class, 'store']);
-$router->post('/admin/users/{id}/delete', [AdminUsers::class, 'delete']);
+    // Admin only: a nested group adds RequireAdmin after Authenticate.
+    $router->group([RequireAdmin::class], function (Router $router): void {
+        $router->get('/admin/users', [AdminUsers::class, 'index']);
+        $router->get('/admin/users/create', [AdminUsers::class, 'create']);
+        $router->post('/admin/users/create', [AdminUsers::class, 'store']);
+        $router->post('/admin/users/{id}/delete', [AdminUsers::class, 'delete']);
+    });
+});

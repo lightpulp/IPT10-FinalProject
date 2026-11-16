@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Services\ExchangeRates;
 use Lightpull\Database;
 use Lightpull\HttpException;
 use Lightpull\Request;
@@ -24,6 +25,7 @@ final class CatalogController
     public function __construct(
         private readonly Database $db,
         private readonly Request $request,
+        private readonly ExchangeRates $exchangeRates,
     ) {
     }
 
@@ -46,7 +48,9 @@ final class CatalogController
             self::PRODUCT_SELECT . ' WHERE p.category_id = ? AND p.id <> ? AND p.is_active = 1 ORDER BY p.created_at DESC LIMIT 4',
             [$product['category_id'], $product['id']],
         );
-        return page_product(['product' => $product, 'related' => $related]);
+        // Only priced products need rates, so made-to-order pages never wait on the API.
+        $rates = $product['price'] === null ? null : $this->exchangeRates->latest();
+        return page_product(['product' => $product, 'related' => $related, 'rates' => $rates]);
     }
 
     private function listing(?array $category): Response

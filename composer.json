@@ -1,17 +1,24 @@
 {
-  "name": "betis-legacy/blf",
-  "description": "Lightpull micro-framework and the Betis Legacy Furniture CMS",
-  "type": "project",
-  "require": {
-    "php": ">=8.1",
-    "ext-pdo": "*",
-    "ext-fileinfo": "*"
-  },
-  "autoload": {
-    "psr-4": {
-      "Lightpull\\": "lightpull/",
-      "App\\": "BLF/"
+    "name": "betis-legacy/blf",
+    "description": "Lightpull micro-framework and the Betis Legacy Furniture CMS",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "ext-pdo": "*",
+        "ext-fileinfo": "*"
     },
-    "files": ["lightpull/helpers.php", "lightpull/ui.php", "lightpull/ui_admin.php"]
-  }
+    "autoload": {
+        "psr-4": {
+            "Lightpull\\": "lightpull/",
+            "App\\": "BLF/"
+        },
+        "files": [
+            "lightpull/helpers.php",
+            "lightpull/ui.php",
+            "lightpull/ui_admin.php"
+        ]
+    },
+    "scripts": {
+        "test": "php tests/run.php"
+    }
 }

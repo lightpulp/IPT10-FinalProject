@@ -4,21 +4,12 @@ declare(strict_types=1);
 
 namespace App\Controllers\Admin;
 
-use Lightpull\Database;
 use Lightpull\HttpException;
-use Lightpull\Request;
 use Lightpull\Response;
-use Lightpull\Session;
 
-/** Admin only: every action here is guarded in the constructor. */
+/** Admin only: routes.php puts every action here behind the RequireAdmin middleware. */
 final class UserController extends AdminController
 {
-    public function __construct(Database $db, Session $session, Request $request)
-    {
-        parent::__construct($db, $session, $request);
-        $this->requireAdmin();
-    }
-
     public function index(): Response
     {
         return admin_users([

@@ -22,6 +22,9 @@ final class App
     public readonly Container $container;
     public readonly Router $router;
 
+    /** @var list<class-string<Middleware>> Global middleware, run on every request in this order. */
+    private array $middleware;
+
     public function __construct(private readonly array $config)
     {
         self::$instance = $this;
@@ -29,10 +32,20 @@ final class App
 
         $this->container = new Container();
         $this->router = new Router();
+        $this->middleware = array_values((array) $this->config('middleware', []));
         $this->container->singleton(self::class, fn () => $this);
+        $this->container->singleton(Container::class, fn () => $this->container);
         $this->container->singleton(Request::class, fn () => Request::capture());
         $this->container->singleton(Session::class, fn () => new Session());
         $this->container->singleton(Database::class, fn () => new Database((array) $this->config('db', [])));
+        $this->container->singleton(Cache::class, fn () => new Cache((string) $this->config('cache.dir', sys_get_temp_dir())));
+        $this->container->singleton(HttpClient::class, fn () => new HttpClient((int) $this->config('http.timeout', 5)));
+    }
+
+    /** Adds global middleware after the ones listed in config('middleware'). */
+    public function middleware(string ...$classes): void
+    {
+        array_push($this->middleware, ...$classes);
     }
 
     public static function instance(): self
@@ -85,8 +98,16 @@ final class App
         return $this->container->get($key);
     }
 
+    /**
+     * The URL prefix for links. Taken from the path of config('app.url') (APP_URL)
+     * when set, otherwise detected from where index.php lives.
+     */
     public function basePath(): string
     {
+        $url = (string) $this->config('app.url', '');
+        if ($url !== '') {
+            return rtrim((string) parse_url($url, PHP_URL_PATH), '/');
+        }
         return $this->get(Request::class)->basePath();
     }
 
@@ -95,10 +116,11 @@ final class App
         try {
             $request = $this->get(Request::class);
             $this->get(Session::class)->start($request->isSecure());
-            if ($request->isPost()) {
-                $this->requireCsrf($request);
-            }
-            $response = $this->router->dispatch($request, $this->container);
+            $response = (new Pipeline($this->container))->run(
+                $this->middleware,
+                $request,
+                fn (Request $request) => $this->router->dispatch($request, $this->container),
+            );
         } catch (HttpException $e) {
             $response = $e->status() >= 300 && $e->status() < 400
                 ? new Response('', $e->status(), $e->headers())
@@ -108,15 +130,6 @@ final class App
             $response = $this->renderError(500, $e);
         }
         $response->send();
-    }
-
-    /** Every POST passes through here before routing, so no handler can forget the check. */
-    public function requireCsrf(Request $request): void
-    {
-        $token = $request->input('_token');
-        if (!$this->get(Session::class)->verifyCsrf(is_string($token) ? $token : null)) {
-            throw new HttpException(419);
-        }
     }
 
     private function renderError(int $status, Throwable $e): Response

@@ -12,28 +12,58 @@ use ReflectionNamedType;
 
 final class Router
 {
-    /** @var array<string, array<string, array|callable>> */
+    /** @var array<string, array<string, Route>> method => path => Route */
     private array $routes = [];
 
-    public function get(string $path, array|callable $handler): void
+    /** Middleware of the group() calls currently open, innermost last. */
+    private array $groupMiddleware = [];
+
+    public function get(string $path, array|callable $handler): Route
     {
-        $this->routes['GET']['/' . trim($path, '/')] = $handler;
+        return $this->add('GET', $path, $handler);
     }
 
-    public function post(string $path, array|callable $handler): void
+    public function post(string $path, array|callable $handler): Route
     {
-        $this->routes['POST']['/' . trim($path, '/')] = $handler;
+        return $this->add('POST', $path, $handler);
+    }
+
+    /**
+     * Every route registered inside $routes gets $middleware, before any it adds itself.
+     *
+     *     $router->group([Authenticate::class], function (Router $router) { ... });
+     */
+    public function group(array $middleware, callable $routes): void
+    {
+        $this->groupMiddleware[] = $middleware;
+        try {
+            $routes($this);
+        } finally {
+            array_pop($this->groupMiddleware);
+        }
     }
 
     public function dispatch(Request $request, Container $container): Response
     {
-        foreach ($this->routes[$request->method()] ?? [] as $path => $handler) {
+        foreach ($this->routes[$request->method()] ?? [] as $path => $route) {
             if (preg_match($this->pattern($path), $request->path(), $matches)) {
                 $params = array_map('rawurldecode', array_slice($matches, 1));
-                return $this->call($handler, $params, $container);
+                return (new Pipeline($container))->run(
+                    $route->middlewareList(),
+                    $request,
+                    fn () => $this->call($route->handler, $params, $container),
+                );
             }
         }
         throw new HttpException(404);
+    }
+
+    private function add(string $method, string $path, array|callable $handler): Route
+    {
+        $handler = is_array($handler) ? $handler : Closure::fromCallable($handler);
+        $route = new Route($handler, array_merge([], ...$this->groupMiddleware));
+        $this->routes[$method]['/' . trim($path, '/')] = $route;
+        return $route;
     }
 
     private function pattern(string $path): string
@@ -41,14 +71,14 @@ final class Router
         return '#^' . preg_replace('#\{[a-zA-Z_]+\}#', '([^/]+)', $path) . '$#';
     }
 
-    private function call(array|callable $handler, array $params, Container $container): Response
+    private function call(array|Closure $handler, array $params, Container $container): Response
     {
         if (is_array($handler)) {
             [$class, $method] = $handler;
             $handler = [$container->get($class), $method];
             $reflection = new ReflectionMethod($handler[0], $method);
         } else {
-            $reflection = new ReflectionFunction(Closure::fromCallable($handler));
+            $reflection = new ReflectionFunction($handler);
         }
 
         $result = $handler(...$this->arguments($reflection, $params));

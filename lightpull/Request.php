@@ -10,6 +10,9 @@ namespace Lightpull;
  */
 final class Request
 {
+    /** Values attached by middleware for later layers, e.g. the signed-in user. */
+    private array $attributes = [];
+
     public function __construct(
         private readonly string $method,
         private readonly string $path,
@@ -96,6 +99,16 @@ final class Request
     {
         $https = $this->server['HTTPS'] ?? '';
         return ($https !== '' && $https !== 'off') || (int) ($this->server['SERVER_PORT'] ?? 80) === 443;
+    }
+
+    public function setAttribute(string $key, mixed $value): void
+    {
+        $this->attributes[$key] = $value;
+    }
+
+    public function attribute(string $key, mixed $default = null): mixed
+    {
+        return $this->attributes[$key] ?? $default;
     }
 
     public function ip(): string

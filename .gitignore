@@ -3,3 +3,7 @@
 BLF/public/uploads/*
 !BLF/public/uploads/.gitkeep
 !BLF/public/uploads/.htaccess
+BLF/storage/logs/*
+BLF/storage/cache/*
+!BLF/storage/logs/.gitkeep
+!BLF/storage/cache/.gitkeep

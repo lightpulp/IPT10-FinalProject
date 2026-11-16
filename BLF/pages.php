@@ -7,6 +7,7 @@ declare(strict_types=1);
  * components from ui.php and returns a Response; no HTML is written here.
  */
 
+use App\Services\ExchangeRates;
 use Lightpull\Response;
 
 // ---------------------------------------------------------------- site chrome
@@ -174,6 +175,7 @@ function page_product(array $d): Response
                     'Availability' => $p['in_stock'] ? 'Ready stock' : 'Made to order',
                 ]]),
                 button(['label' => 'Request a quote for this piece', 'url' => '/inquire/' . $p['slug'], 'size' => 'lg']),
+                foreign_prices($p['price'], $d['rates'] ?? null, 'Buying from abroad?'),
             ], 5),
         ]),
         $d['related'] ? section_title(['title' => 'More ' . $p['category_name']]) : '',
@@ -273,13 +275,13 @@ function page_track(array $d): Response
             ], 5),
             col([
                 $d['not_found'] ? alert(['type' => 'warning', 'message' => 'We couldn\'t find a request with those details. Check both and try again.']) : '',
-                $d['result'] ? track_result($d['result']) : '',
+                $d['result'] ? track_result($d['result'], $d['rates'] ?? null) : '',
             ], 7),
         ]),
     ]);
 }
 
-function track_result(array $r): string
+function track_result(array $r, ?array $rates): string
 {
     $statuses = config('statuses');
     $steps = array_diff_key($statuses, ['cancelled' => true]);
@@ -298,7 +300,34 @@ function track_result(array $r): string
             'Submitted' => date('F j, Y', (int) strtotime($r['created_at'])),
             'Status' => status_label($r['status']),
             'Quoted amount' => $r['quoted_amount'] !== null ? money($r['quoted_amount']) : null,
-        ]]);
+        ]])
+        . foreign_prices($r['quoted_amount'], $rates, 'Your quote in other currencies');
+}
+
+/**
+ * Approximate amounts in other currencies, from ExchangeRate-API rates
+ * (see App\Services\ExchangeRates). Empty when there is no amount or no rates.
+ */
+function foreign_prices(float|string|null $pesos, ?array $rates, string $title): string
+{
+    if ($pesos === null || $pesos === '' || $rates === null) {
+        return '';
+    }
+    $names = [
+        'USD' => 'US dollar', 'AED' => 'UAE dirham', 'SAR' => 'Saudi riyal',
+        'SGD' => 'Singapore dollar', 'CAD' => 'Canadian dollar', 'AUD' => 'Australian dollar',
+    ];
+    $items = [];
+    foreach (ExchangeRates::convert((float) $pesos, $rates['rates']) as $code => $amount) {
+        $items[$names[$code] ?? $code] = '≈ ' . number_format($amount, 2) . ' ' . $code;
+    }
+    $note = 'For reference only. Converted from pesos with ExchangeRate-API rates updated '
+        . date('M j, Y', $rates['updated_at']) . '. Quotes and payments are in pesos.'
+        . ($rates['stale'] ? ' The rates could not be refreshed just now, so these are the last saved rates.' : '');
+
+    return section_title(['title' => $title, 'size' => 'sm'])
+        . definition_list(['items' => $items])
+        . text_block(['text' => $note, 'muted' => true]);
 }
 
 function page_about(): Response

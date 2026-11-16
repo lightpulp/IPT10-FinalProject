@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Services\ExchangeRates;
 use Lightpull\Database;
 use Lightpull\Request;
 use Lightpull\Response;
@@ -13,12 +14,13 @@ final class TrackController
     public function __construct(
         private readonly Database $db,
         private readonly Request $request,
+        private readonly ExchangeRates $exchangeRates,
     ) {
     }
 
     public function form(): Response
     {
-        return page_track(['values' => ['reference' => '', 'phone' => ''], 'result' => null, 'not_found' => false]);
+        return page_track(['values' => ['reference' => '', 'phone' => ''], 'result' => null, 'not_found' => false, 'rates' => null]);
     }
 
     /**
@@ -41,6 +43,7 @@ final class TrackController
             'values' => ['reference' => $reference, 'phone' => $phone],
             'result' => $matches ? $row : null,
             'not_found' => !$matches,
+            'rates' => $matches && $row['quoted_amount'] !== null ? $this->exchangeRates->latest() : null,
         ]);
     }
 
